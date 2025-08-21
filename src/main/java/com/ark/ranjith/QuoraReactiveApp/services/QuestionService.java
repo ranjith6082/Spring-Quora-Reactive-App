@@ -5,8 +5,12 @@ import com.ark.ranjith.QuoraReactiveApp.dto.QuestionRequestDTO;
 import com.ark.ranjith.QuoraReactiveApp.dto.QuestionResponseDTO;
 import com.ark.ranjith.QuoraReactiveApp.models.Question;
 import com.ark.ranjith.QuoraReactiveApp.repositories.QuestionRepository;
+import com.ark.ranjith.QuoraReactiveApp.utils.CursorUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -35,5 +39,44 @@ public class QuestionService implements IQuestionService{
                 .doOnSuccess(response -> System.out.println("Question created successfully: " + response))
                 .doOnError(error -> System.err.println("Error creating question: " + error.getMessage()));
 
+    }
+
+    @Override
+    public Mono<QuestionResponseDTO> getQuestionById(String id) {
+        return null;
+    }
+
+    @Override
+    public Flux<QuestionResponseDTO> getAllQuestions(String cursor, int size) {
+        Pageable pageable = PageRequest.of(0, size);
+
+
+        if(!CursorUtils.isValidCursor(cursor)){
+            return questionRepository.findTop10ByOrderByCreatedAtAsc()
+                    .take(size)
+                    .map(QuestionAdapter::toQuestionResponseDTO)
+                    .doOnError(error -> System.err.println("Error fetching questions: " + error.getMessage()))
+                    .doOnComplete(() -> System.out.println("Fetched top 10 questions successfully."));
+        }else{
+            LocalDateTime cursorTimeStamp = CursorUtils.parseCursor(cursor);
+            return questionRepository.findByCreatedAtGreaterThanOrderByCreatedAtAsc(cursorTimeStamp, pageable)
+                    .map(QuestionAdapter::toQuestionResponseDTO)
+                    .doOnError(error -> System.err.println("Error fetching questions: " + error.getMessage()))
+                    .doOnComplete(() -> System.out.println("Fetched questions successfully."));
+        }
+    }
+
+
+    @Override
+    public Mono<Void> deleteQuestionById(String id) {
+        return null;
+    }
+
+    @Override
+    public Flux<QuestionResponseDTO> searchQuestions(String searchTerm, int offset, int page) {
+        return questionRepository.findByTitleOrContentContainingIgnoreCase(searchTerm, PageRequest.of(offset,page))
+                .map(QuestionAdapter::toQuestionResponseDTO)
+                .doOnError(error -> System.err.println("Error searching questions: " + error.getMessage()))
+                .doOnComplete(() -> System.out.println("Question search completed successfully."));
     }
 }

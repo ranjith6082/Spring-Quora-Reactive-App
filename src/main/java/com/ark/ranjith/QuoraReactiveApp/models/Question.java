@@ -38,3 +38,5 @@ public class Question {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 }
+
+// Question has many tags, one tag can have many questions

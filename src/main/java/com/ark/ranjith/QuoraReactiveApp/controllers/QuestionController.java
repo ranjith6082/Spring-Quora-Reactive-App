@@ -35,8 +35,11 @@ public class QuestionController {
     }
 
     @GetMapping
-    public Flux<QuestionResponseDTO> getAllQuestions() {
-        return questionService.getAllQuestions()
+    public Flux<QuestionResponseDTO> getAllQuestions(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return questionService.getAllQuestions(cursor,size)
                 .doOnComplete(() -> System.out.println("All questions retrieved successfully"))
                 .doOnError(error -> System.out.println("Error retrieving questions: " + error.getMessage()));
     }
@@ -54,7 +57,7 @@ public class QuestionController {
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "10") int size
     ) {
-        throw new UnsupportedOperationException("Search functionality is not implemented yet.");
+        return questionService.searchQuestions(query,page,size);
     }
 
     @GetMapping("/tag/{tag}")
