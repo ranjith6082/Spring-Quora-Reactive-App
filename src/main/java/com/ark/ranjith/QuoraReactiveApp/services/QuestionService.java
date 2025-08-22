@@ -1,6 +1,8 @@
 package com.ark.ranjith.QuoraReactiveApp.services;
 
 import com.ark.ranjith.QuoraReactiveApp.adapter.QuestionAdapter;
+import com.ark.ranjith.QuoraReactiveApp.dto.PaginatedResponseDTO;
+import com.ark.ranjith.QuoraReactiveApp.dto.PaginationDTO;
 import com.ark.ranjith.QuoraReactiveApp.dto.QuestionRequestDTO;
 import com.ark.ranjith.QuoraReactiveApp.dto.QuestionResponseDTO;
 import com.ark.ranjith.QuoraReactiveApp.models.Question;
@@ -79,4 +81,30 @@ public class QuestionService implements IQuestionService{
                 .doOnError(error -> System.err.println("Error searching questions: " + error.getMessage()))
                 .doOnComplete(() -> System.out.println("Question search completed successfully."));
     }
+
+
+    @Override
+    public Mono<PaginatedResponseDTO<QuestionResponseDTO>> getAllQuestionsWithMetadata(int page, int size) {
+        int skip = page * size;
+
+        Mono<Long> totalRecordsMono = questionRepository.count();
+        Flux<QuestionResponseDTO> questionsFlux = questionRepository.findAll()
+                .skip(skip)
+                .take(size)
+                .map(QuestionAdapter::toQuestionResponseDTO);
+
+        return totalRecordsMono.flatMap(totalRecords ->
+                questionsFlux.collectList().map(questions -> {
+                    int totalPages = (int) Math.ceil((double) totalRecords / size);
+                    Integer nextPage = (page + 1 < totalPages) ? page + 1 : null;
+                    Integer prevPage = (page > 0) ? page - 1 : null;
+
+                    PaginationDTO pagination = new PaginationDTO(totalRecords, page, totalPages, nextPage, prevPage);
+
+                    return new PaginatedResponseDTO<>(questions, pagination);
+                })
+        );
+    }
+
+
 }

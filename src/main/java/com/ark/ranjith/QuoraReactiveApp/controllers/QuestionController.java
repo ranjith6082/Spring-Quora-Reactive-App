@@ -1,5 +1,6 @@
 package com.ark.ranjith.QuoraReactiveApp.controllers;
 
+import com.ark.ranjith.QuoraReactiveApp.dto.PaginatedResponseDTO;
 import com.ark.ranjith.QuoraReactiveApp.dto.QuestionRequestDTO;
 import com.ark.ranjith.QuoraReactiveApp.dto.QuestionResponseDTO;
 import com.ark.ranjith.QuoraReactiveApp.services.IQuestionService;
@@ -72,6 +73,14 @@ public class QuestionController {
 //                .doOnError(error -> System.out.println("Error retrieving questions by tag: " + error.getMessage()));
     }
 
-
+    @GetMapping("/paginated")
+    public Mono<PaginatedResponseDTO<QuestionResponseDTO>> getAllQuestionsWithMetadata(
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return questionService.getAllQuestionsWithMetadata(page, size)
+                .doOnSuccess(response -> System.out.println("✅ Paginated questions retrieved"))
+                .doOnError(error -> System.out.println("❌ Error retrieving paginated questions: " + error.getMessage()));
+    }
 
 }
