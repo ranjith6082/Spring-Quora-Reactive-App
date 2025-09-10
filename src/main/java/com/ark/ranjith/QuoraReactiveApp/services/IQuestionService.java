@@ -11,14 +11,17 @@ public interface IQuestionService {
 
     public Mono<QuestionResponseDTO> createQuestion(QuestionRequestDTO questionRequestDTO);
 
-    public Mono<QuestionResponseDTO> getQuestionById(String id);
+    public Flux<QuestionResponseDTO> searchQuestions(String searchTerm, int offset, int page);
 
     public Flux<QuestionResponseDTO> getAllQuestions(String cursor,int size);
 
-    public Mono<Void> deleteQuestionById(String id);
+    public Mono<QuestionResponseDTO> getQuestionById(String id);
 
-    public Flux<QuestionResponseDTO> searchQuestions(String searchTerm, int offset, int page);
+    public Mono<Void> deleteQuestionById(String id);
 
     // ✅ new paginated method
     Mono<PaginatedResponseDTO<QuestionResponseDTO>> getAllQuestionsWithMetadata(int page, int size);
+
+    Flux<QuestionResponseDTO> getQuestionsByTag(String tag, int page, int size);
+
 }

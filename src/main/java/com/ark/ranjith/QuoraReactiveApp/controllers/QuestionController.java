@@ -67,11 +67,11 @@ public class QuestionController {
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "10") int size
     ) {
-        throw new UnsupportedOperationException("Tag-based question retrieval is not implemented yet.");
-//        return questionService.getQuestionsByTag(tag, page, size)
-//                .doOnComplete(() -> System.out.println("Questions by tag retrieved successfully"))
-//                .doOnError(error -> System.out.println("Error retrieving questions by tag: " + error.getMessage()));
+        return questionService.getQuestionsByTag(tag, page, size)
+                .doOnComplete(() -> System.out.println("Questions by tag retrieved successfully"))
+                .doOnError(error -> System.out.println("Error retrieving questions by tag: " + error.getMessage()));
     }
+
 
     @GetMapping("/paginated")
     public Mono<PaginatedResponseDTO<QuestionResponseDTO>> getAllQuestionsWithMetadata(

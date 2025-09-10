@@ -11,7 +11,9 @@ import com.ark.ranjith.QuoraReactiveApp.utils.CursorUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -33,6 +35,7 @@ public class QuestionService implements IQuestionService{
         Question question = Question.builder()
                 .title(questionRequestDTO.getTitle())
                 .content(questionRequestDTO.getContent())
+                .tags(questionRequestDTO.getTags()) // ✅ Save tags
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -43,10 +46,18 @@ public class QuestionService implements IQuestionService{
 
     }
 
+
+
     @Override
     public Mono<QuestionResponseDTO> getQuestionById(String id) {
-        return null;
+        return questionRepository.findById(id)
+                .map(QuestionAdapter::toQuestionResponseDTO)
+                .doOnSuccess(response -> System.out.println("✅ Found question: " + response))
+                .doOnError(error -> System.err.println("❌ Error retrieving id " + id + ": " + error.getMessage()));
     }
+
+
+
 
     @Override
     public Flux<QuestionResponseDTO> getAllQuestions(String cursor, int size) {
@@ -71,8 +82,14 @@ public class QuestionService implements IQuestionService{
 
     @Override
     public Mono<Void> deleteQuestionById(String id) {
-        return null;
+        return questionRepository.findById(id)
+                .flatMap(question -> questionRepository.deleteById(id))
+                .switchIfEmpty(Mono.error(new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "❌ Question not found with id: " + id)))
+                .doOnSuccess(unused -> System.out.println("Question deleted successfully with id: " + id))
+                .doOnError(error -> System.out.println("Error deleting question with id " + id + ": " + error.getMessage()));
     }
+
 
     @Override
     public Flux<QuestionResponseDTO> searchQuestions(String searchTerm, int offset, int page) {
@@ -107,4 +124,16 @@ public class QuestionService implements IQuestionService{
     }
 
 
+    @Override
+    public Flux<QuestionResponseDTO> getQuestionsByTag(String tag, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        return questionRepository.findByTagsContainingIgnoreCase(tag, pageable)
+                .map(QuestionAdapter::toQuestionResponseDTO)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "❌ No questions found with tag: " + tag)))
+                .doOnNext(q -> System.out.println("✅ Found question with tag [" + tag + "]: " + q))
+                .doOnError(error -> System.err.println("❌ Error fetching questions by tag [" + tag + "]: " + error.getMessage()))
+                .doOnComplete(() -> System.out.println("✅ Completed fetching questions by tag [" + tag + "]"));
+    }
 }
