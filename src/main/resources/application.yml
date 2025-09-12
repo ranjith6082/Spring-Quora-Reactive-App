@@ -10,3 +10,10 @@ spring:
 
 server:
   port: ${PORT}
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.web.reactive: DEBUG
+    org.springframework.kafka: DEBUG
+    reactor.netty: DEBUG

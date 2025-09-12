@@ -5,7 +5,10 @@ import com.ark.ranjith.QuoraReactiveApp.dto.PaginatedResponseDTO;
 import com.ark.ranjith.QuoraReactiveApp.dto.PaginationDTO;
 import com.ark.ranjith.QuoraReactiveApp.dto.QuestionRequestDTO;
 import com.ark.ranjith.QuoraReactiveApp.dto.QuestionResponseDTO;
+import com.ark.ranjith.QuoraReactiveApp.enums.TargetType;
+import com.ark.ranjith.QuoraReactiveApp.events.ViewCountEvent;
 import com.ark.ranjith.QuoraReactiveApp.models.Question;
+import com.ark.ranjith.QuoraReactiveApp.producers.KafkaEventProducer;
 import com.ark.ranjith.QuoraReactiveApp.repositories.QuestionRepository;
 import com.ark.ranjith.QuoraReactiveApp.utils.CursorUtils;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +26,9 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class QuestionService implements IQuestionService{
 
-    public final QuestionRepository questionRepository;
+    private final QuestionRepository questionRepository;
+
+    private final KafkaEventProducer kafkaEventProducer;
 
 //    public QuestionService(QuestionRepository questionRepository) {
 //        this.questionRepository = questionRepository;
@@ -52,9 +57,19 @@ public class QuestionService implements IQuestionService{
     public Mono<QuestionResponseDTO> getQuestionById(String id) {
         return questionRepository.findById(id)
                 .map(QuestionAdapter::toQuestionResponseDTO)
-                .doOnSuccess(response -> System.out.println("✅ Found question: " + response))
+                .flatMap(response -> {
+                    // Only execute when record exists
+                    ViewCountEvent viewCountEvent = new ViewCountEvent(
+                            id, TargetType.QUESTION, LocalDateTime.now()
+                    );
+                    kafkaEventProducer.publishViewCountEvent(viewCountEvent);
+                    System.out.println("✅ Successfully retrieved question with id " + id + ": " + response);
+                    return Mono.just(response);
+                })
+                .switchIfEmpty(Mono.error(new RuntimeException("Question not found with id: " + id)))
                 .doOnError(error -> System.err.println("❌ Error retrieving id " + id + ": " + error.getMessage()));
     }
+
 
 
 
